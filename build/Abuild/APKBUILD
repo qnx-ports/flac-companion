@@ -1,0 +1,85 @@
+# Alpine-Maintainer: Natanael Copa <ncopa@alpinelinux.org>
+# Maintainer: Felix Xing <fxing@qnx.com>
+pkgname=flac
+pkgver=1.5.0
+pkgrel=0
+pkgdesc="Free Lossless Audio Codec"
+url="https://xiph.org/flac/"
+arch="all"
+license="BSD-3-Clause AND GPL-2.0-or-later"
+options="!check" # Tests are infinite
+subpackages="$pkgname-static $pkgname-dev $pkgname-libs libflac libflac++:libpp $pkgname-doc"
+depends="libflac"
+makedepends="cmake libogg-dev ninja clang libc++-dev"
+source="https://downloads.xiph.org/releases/flac/flac-$pkgver.tar.xz"
+
+build() {
+    export CFLAGS="$CFLAGS -O3"
+    export CXXFLAGS="$CXXFLAGS -O3"
+
+    # Shared
+    cmake -B build -G Ninja \
+        -DCMAKE_C_COMPILER="clang" \
+        -DCMAKE_CXX_COMPILER="clang++" \
+        -DCMAKE_INSTALL_PREFIX=/usr \
+        -DCMAKE_BUILD_TYPE=None \
+        -DCMAKE_C_STANDARD_LIBRARIES="-llocale" \
+        -DBUILD_TESTING=ON \
+        -DBUILD_EXAMPLES=OFF \
+        -DBUILD_SHARED_LIBS=ON \
+        -DWITH_FORTIFY_SOURCE=OFF \
+        -DNDEBUG=ON
+
+    # Static
+    cmake -B build-static -G Ninja \
+        -DCMAKE_C_COMPILER="clang" \
+        -DCMAKE_CXX_COMPILER="clang++" \
+        -DCMAKE_INSTALL_PREFIX=/usr \
+        -DCMAKE_BUILD_TYPE=None \
+        -DCMAKE_C_STANDARD_LIBRARIES="-llocale" \
+        -DBUILD_TESTING=OFF \
+        -DBUILD_EXAMPLES=OFF \
+        -DBUILD_SHARED_LIBS=OFF \
+        -DWITH_FORTIFY_SOURCE=OFF \
+        -DNDEBUG=ON
+
+    cmake --build build
+    cmake --build build-static
+}
+
+check() {
+    ctest --test-dir build
+}
+
+package() {
+    # Static goes first, so it won't overwrite the shared version of files.
+    DESTDIR="$pkgdir" cmake --install build-static
+    DESTDIR="$pkgdir" cmake --install build
+
+    install -Dm0644 COPYING.Xiph \
+        "$pkgdir"/usr/share/licenses/$pkgname/COPYING.Xiph
+}
+
+libs() {
+    # purely for backwards compat
+    depends="libflac=$pkgver-r$pkgrel libflac++=$pkgver-r$pkgrel"
+    mkdir -p "$subpkgdir"
+}
+
+libflac() {
+    pkgdesc="$pkgdesc (libFLAC)"
+    depends="libogg"
+
+    amove usr/lib/libFLAC.so.*
+}
+
+libpp() {
+    pkgdesc="$pkgdesc (libFLAC++)"
+    depends="libc++ libflac"
+
+    amove usr/lib/libFLAC++.so.*
+}
+
+sha512sums="
+34c9193b804e990b0828a5759e4d7ef1d1859174262d3b305d03e65285edb35c7f429e8071d9dd2c6da0c16e842b40b439bf215704636ae15dd5886151f0d17a  flac-1.5.0.tar.xz
+"
