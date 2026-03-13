@@ -2,7 +2,7 @@
 # Maintainer: Felix Xing <fxing@qnx.com>
 pkgname=flac
 pkgver=1.5.0
-pkgrel=0
+pkgrel=${pkgrel:-0}
 pkgdesc="Free Lossless Audio Codec"
 url="https://xiph.org/flac/"
 arch="all"
@@ -80,6 +80,7 @@ libpp() {
     amove usr/lib/libFLAC++.so.*
 }
 
+options="$options ${DISABLE_CHECK:+!check}"
 sha512sums="
 34c9193b804e990b0828a5759e4d7ef1d1859174262d3b305d03e65285edb35c7f429e8071d9dd2c6da0c16e842b40b439bf215704636ae15dd5886151f0d17a  flac-1.5.0.tar.xz
 "
